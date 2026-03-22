@@ -222,3 +222,10 @@ __marimo__/
 # Keep the raw M5 competition files local; GitHub rejects several of them
 # because they exceed the normal file size limit.
 m5_data/
+
+# Model and experiment artifacts
+models/*.pkl
+models/*.json
+mlruns/
+airflow_home/
+logs/
