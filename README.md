@@ -231,17 +231,21 @@ pytest -v
 
 This repository now includes 3 workflows under `.github/workflows/`:
 
-- `ci.yml`: runs on pull requests and pushes to `main`
+- `ci.yml`: runs on pull requests and pushes to `main` and `develop`
+  - runs on GitHub-hosted runner (`ubuntu-latest`)
   - install dependencies with Python 3.12
   - run `pytest -v`
   - build both Docker images (`Dockerfile` and `Dockerfile.airflow`)
-- `cd.yml`: runs on pushes to `main` and manual dispatch
+- `cd.yml`: runs on pushes to `main` and `develop`, and manual dispatch
+  - runs on GitHub-hosted runner (`ubuntu-latest`)
   - build and push images to GitHub Container Registry (GHCR)
   - tags both `latest` and `sha-<commit>`
-  - optionally triggers staging deploy webhook when configured
+  - optionally triggers staging deploy webhook when `DEPLOY_WEBHOOK_URL` secret is set
 - `retrain.yml`: runs weekly and manual dispatch
   - runs on a self-hosted Windows runner with labels `self-hosted`, `Windows`, `X64`, `m5-local`
-  - trains the model if a data directory is configured on that runner
+  - validates `M5_DATA_DIR`, local MLflow availability, and MLflow Python import
+  - trains model with Python 3.12 and writes `pipeline_result.json`
+  - fails if `run_id` is null (to ensure retrain was actually logged to MLflow)
   - checks a WAPE quality gate
   - uploads the retrained model artifact
 
@@ -263,6 +267,8 @@ docker compose up -d mlflow
 ```
 
 If `M5_DATA_DIR` is not set, the retraining workflow exits early without training.
+
+`retrain.yml` also pins `setuptools==69.5.1` to ensure `pkg_resources` is available for MLflow on the runner.
 
 ### Container Images
 
