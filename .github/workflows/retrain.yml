@@ -61,7 +61,36 @@ jobs:
       - name: Run training pipeline
         shell: powershell
         run: |
-          python -m pipeline.run_pipeline --max-series 300 --recent-days 365 --validation-days 28 > pipeline_result.json
+          $output = python -m pipeline.run_pipeline --max-series 300 --recent-days 365 --validation-days 28
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Training pipeline failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          if ([string]::IsNullOrWhiteSpace($output)) {
+            Write-Error "Training pipeline produced empty stdout. Cannot build pipeline_result.json"
+            exit 1
+          }
+          Set-Content -Path pipeline_result.json -Value $output -Encoding utf8
+
+      - name: Validate pipeline_result.json
+        shell: powershell
+        run: |
+          if (-not (Test-Path -Path pipeline_result.json -PathType Leaf)) {
+            Write-Error "pipeline_result.json was not created"
+            exit 1
+          }
+          $raw = Get-Content -Path pipeline_result.json -Raw
+          if ([string]::IsNullOrWhiteSpace($raw)) {
+            Write-Error "pipeline_result.json is empty"
+            exit 1
+          }
+          try {
+            $null = $raw | ConvertFrom-Json
+          }
+          catch {
+            Write-Error "pipeline_result.json is not valid JSON. Raw content preview: $($raw.Substring(0, [Math]::Min($raw.Length, 500)))"
+            exit 1
+          }
 
       - name: Quality gate on WAPE
         shell: powershell
@@ -71,7 +100,7 @@ jobs:
           import os
           from pathlib import Path
 
-          payload = json.loads(Path("pipeline_result.json").read_text())
+          payload = json.loads(Path("pipeline_result.json").read_text(encoding="utf-8-sig"))
           wape = float(payload["metrics"]["wape"])
           threshold = float(os.getenv("WAPE_THRESHOLD", "0.80"))
           print(f"WAPE={wape:.6f}, threshold={threshold:.6f}")
