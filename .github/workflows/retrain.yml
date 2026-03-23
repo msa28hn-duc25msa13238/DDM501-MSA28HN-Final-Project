@@ -58,6 +58,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Validate MLflow Python package
+        shell: powershell
+        run: |
+          $code = @'
+          import mlflow
+          print(f"mlflow_version={mlflow.__version__}")
+          '@
+          Set-Content -Path check_mlflow.py -Value $code
+          python check_mlflow.py
+
       - name: Run training pipeline
         shell: powershell
         run: |
@@ -101,8 +111,15 @@ jobs:
           from pathlib import Path
 
           payload = json.loads(Path("pipeline_result.json").read_text(encoding="utf-8-sig"))
+          run_id = payload.get("run_id")
+          if not run_id:
+            raise SystemExit(
+              "MLflow logging is missing (run_id is null). "
+              "Check mlflow import/runtime on runner and MLFLOW_TRACKING_URI connectivity."
+            )
           wape = float(payload["metrics"]["wape"])
           threshold = float(os.getenv("WAPE_THRESHOLD", "0.80"))
+          print(f"run_id={run_id}")
           print(f"WAPE={wape:.6f}, threshold={threshold:.6f}")
           if wape > threshold:
             raise SystemExit(f"Quality gate failed: WAPE {wape:.6f} exceeds {threshold:.6f}")
