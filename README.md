@@ -227,6 +227,52 @@ docker compose down
 pytest -v
 ```
 
+## CI/CD (GitHub Actions)
+
+This repository now includes 3 workflows under `.github/workflows/`:
+
+- `ci.yml`: runs on pull requests and pushes to `main`
+  - install dependencies with Python 3.12
+  - run `pytest -v`
+  - build both Docker images (`Dockerfile` and `Dockerfile.airflow`)
+- `cd.yml`: runs on pushes to `main` and manual dispatch
+  - build and push images to GitHub Container Registry (GHCR)
+  - tags both `latest` and `sha-<commit>`
+  - optionally triggers staging deploy webhook when configured
+- `retrain.yml`: runs weekly and manual dispatch
+  - runs on a self-hosted Windows runner with labels `self-hosted`, `Windows`, `X64`, `m5-local`
+  - trains the model if a data directory is configured on that runner
+  - checks a WAPE quality gate
+  - uploads the retrained model artifact
+
+### Required Repository Settings
+
+Configure the following repository secrets in GitHub:
+
+- `DEPLOY_WEBHOOK_URL` (optional): webhook endpoint used by `cd.yml`
+- `M5_DATA_DIR` (required for `retrain.yml`): absolute path to M5 CSV directory on the self-hosted runner, for example `D:\datasets\m5_data`
+
+For retraining, `retrain.yml` uses local MLflow on the self-hosted runner:
+
+- `MLFLOW_TRACKING_URI=http://127.0.0.1:5001`
+
+Start MLflow on that machine before running retrain:
+
+```bash
+docker compose up -d mlflow
+```
+
+If `M5_DATA_DIR` is not set, the retraining workflow exits early without training.
+
+### Container Images
+
+`cd.yml` publishes:
+
+- `ghcr.io/<owner>/m5-forecast-api:latest`
+- `ghcr.io/<owner>/m5-forecast-api:sha-<commit>`
+- `ghcr.io/<owner>/m5-forecast-airflow:latest`
+- `ghcr.io/<owner>/m5-forecast-airflow:sha-<commit>`
+
 ## Lab Mapping
 
 Lab 1 deliverables covered by this repo:

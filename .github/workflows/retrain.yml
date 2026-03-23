@@ -1,0 +1,89 @@
+name: Retrain Model
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: retrain-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: [self-hosted, Windows, X64, m5-local]
+    env:
+      DATA_DIR: ${{ secrets.M5_DATA_DIR }}
+      MODEL_DIR: models
+      MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+      WAPE_THRESHOLD: "0.80"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate retrain configuration
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:DATA_DIR)) {
+            Write-Host "M5_DATA_DIR secret is not set. Skipping retrain workflow."
+            exit 0
+          }
+          if (-not (Test-Path -Path $env:DATA_DIR -PathType Container)) {
+            Write-Error "Configured DATA_DIR does not exist on this runner: $env:DATA_DIR"
+            exit 1
+          }
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Validate local MLflow availability
+        shell: pwsh
+        run: |
+          try {
+            $response = Invoke-WebRequest -Uri "$env:MLFLOW_TRACKING_URI" -UseBasicParsing -TimeoutSec 10
+            Write-Host "MLflow is reachable at $env:MLFLOW_TRACKING_URI (status $($response.StatusCode))."
+          }
+          catch {
+            Write-Error "Cannot reach local MLflow at $env:MLFLOW_TRACKING_URI. Start it on the runner machine first (for example: docker compose up -d mlflow)."
+            exit 1
+          }
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run training pipeline
+        shell: pwsh
+        run: |
+          python -m pipeline.run_pipeline --max-series 300 --recent-days 365 --validation-days 28 > pipeline_result.json
+
+      - name: Quality gate on WAPE
+        shell: pwsh
+        run: |
+          $code = @"
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(Path("pipeline_result.json").read_text())
+          wape = float(payload["metrics"]["wape"])
+          threshold = float(os.getenv("WAPE_THRESHOLD", "0.80"))
+          print(f"WAPE={wape:.6f}, threshold={threshold:.6f}")
+          if wape > threshold:
+              raise SystemExit(f"Quality gate failed: WAPE {wape:.6f} exceeds {threshold:.6f}")
+          "@
+          python -c $code
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrained-model-${{ github.run_number }}
+          path: |
+            models/forecast_model.pkl
+            pipeline_result.json
