@@ -1,9 +1,15 @@
 services:
   api:
     build: .
+    user: "50000:0"
     ports:
       - "8000:8000"
     environment:
+      GIT_PYTHON_REFRESH: quiet
+      HOME: /home/appuser
+      MPLCONFIGDIR: /tmp/matplotlib
+      PYTHONWARNINGS: ignore::UserWarning:_distutils_hack
+      XDG_CONFIG_HOME: /tmp/.config
       MODEL_PATH: /app/models/forecast_model.pkl
       DATA_DIR: /app/m5_data
     volumes:
@@ -12,6 +18,12 @@ services:
 
   mlflow:
     build: .
+    environment:
+      GIT_PYTHON_REFRESH: quiet
+      HOME: /home/appuser
+      MPLCONFIGDIR: /tmp/matplotlib
+      PYTHONWARNINGS: ignore::UserWarning:_distutils_hack
+      XDG_CONFIG_HOME: /tmp/.config
     command:
       [
         "mlflow",
@@ -46,15 +58,19 @@ services:
     environment:
       AIRFLOW_HOME: /opt/airflow/airflow_home
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      GIT_PYTHON_REFRESH: quiet
+      PYTHONWARNINGS: ignore::UserWarning:_distutils_hack
       DATA_DIR: /opt/airflow/project/m5_data
       MODEL_DIR: /opt/airflow/project/models
       MLFLOW_TRACKING_URI: http://mlflow:5000
     command: >
-      bash -c "mkdir -p /opt/airflow/airflow_home/logs /opt/airflow/airflow_home/dags /opt/airflow/airflow_home/plugins &&
+      bash -c "mkdir -p /app/mlruns /app/models /opt/airflow/airflow_home/logs /opt/airflow/airflow_home/dags /opt/airflow/airflow_home/plugins &&
+               chmod -R 0777 /app/mlruns /app/models &&
                chown -R 50000:0 /opt/airflow/airflow_home &&
                airflow db migrate &&
                airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true"
     volumes:
+      - .:/app
       - .:/opt/airflow/project
       - airflow_home:/opt/airflow/airflow_home
 
@@ -71,6 +87,8 @@ services:
       AIRFLOW_HOME: /opt/airflow/airflow_home
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
+      GIT_PYTHON_REFRESH: quiet
+      PYTHONWARNINGS: ignore::UserWarning:_distutils_hack
       PYTHONPATH: /opt/airflow/project
       DATA_DIR: /opt/airflow/project/m5_data
       MODEL_DIR: /opt/airflow/project/models
@@ -79,6 +97,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - .:/app
       - .:/opt/airflow/project
       - airflow_home:/opt/airflow/airflow_home
     restart: unless-stopped
@@ -96,12 +115,15 @@ services:
       AIRFLOW_HOME: /opt/airflow/airflow_home
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
+      GIT_PYTHON_REFRESH: quiet
+      PYTHONWARNINGS: ignore::UserWarning:_distutils_hack
       PYTHONPATH: /opt/airflow/project
       DATA_DIR: /opt/airflow/project/m5_data
       MODEL_DIR: /opt/airflow/project/models
       MLFLOW_TRACKING_URI: http://mlflow:5000
     command: scheduler
     volumes:
+      - .:/app
       - .:/opt/airflow/project
       - airflow_home:/opt/airflow/airflow_home
     restart: unless-stopped
