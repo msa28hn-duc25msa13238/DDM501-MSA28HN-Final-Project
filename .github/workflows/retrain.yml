@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate retrain configuration
-        shell: pwsh
+        shell: powershell
         run: |
           if ([string]::IsNullOrWhiteSpace($env:DATA_DIR)) {
             Write-Host "M5_DATA_DIR secret is not set. Skipping retrain workflow."
@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: requirements.txt
 
       - name: Validate local MLflow availability
-        shell: pwsh
+        shell: powershell
         run: |
           try {
             $response = Invoke-WebRequest -Uri "$env:MLFLOW_TRACKING_URI" -UseBasicParsing -TimeoutSec 10
@@ -53,18 +53,18 @@ jobs:
           }
 
       - name: Install dependencies
-        shell: pwsh
+        shell: powershell
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run training pipeline
-        shell: pwsh
+        shell: powershell
         run: |
           python -m pipeline.run_pipeline --max-series 300 --recent-days 365 --validation-days 28 > pipeline_result.json
 
       - name: Quality gate on WAPE
-        shell: pwsh
+        shell: powershell
         run: |
           $code = @"
           import json
