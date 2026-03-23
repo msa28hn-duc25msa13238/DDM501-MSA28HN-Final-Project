@@ -7,8 +7,7 @@ services:
       MODEL_PATH: /app/models/forecast_model.pkl
       DATA_DIR: /app/m5_data
     volumes:
-      - ./models:/app/models
-      - ./m5_data:/app/m5_data
+      - .:/app
     restart: unless-stopped
 
   mlflow:
@@ -26,6 +25,12 @@ services:
         "--port",
         "5000"
       ]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
     ports:
       - "${MLFLOW_PORT:-5001}:5000"
     volumes:
@@ -33,26 +38,32 @@ services:
     restart: unless-stopped
 
   airflow-init:
-    image: apache/airflow:2.9.3
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    user: "0:0"
+    working_dir: /opt/airflow/project
     environment:
       AIRFLOW_HOME: /opt/airflow/airflow_home
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      _PIP_ADDITIONAL_REQUIREMENTS: "pandas==2.1.3 scikit-learn==1.3.2 mlflow==2.9.2 matplotlib==3.8.2"
+      DATA_DIR: /opt/airflow/project/m5_data
+      MODEL_DIR: /opt/airflow/project/models
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     command: >
-      bash -c "airflow db migrate &&
-               airflow users create
-               --username admin
-               --password admin
-               --firstname Admin
-               --lastname User
-               --role Admin
-               --email admin@example.com || true"
+      bash -c "mkdir -p /opt/airflow/airflow_home/logs /opt/airflow/airflow_home/dags /opt/airflow/airflow_home/plugins &&
+               chown -R 50000:0 /opt/airflow/airflow_home &&
+               airflow db migrate &&
+               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true"
     volumes:
       - .:/opt/airflow/project
       - airflow_home:/opt/airflow/airflow_home
 
   airflow-webserver:
-    image: apache/airflow:2.9.3
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    user: "50000:0"
+    working_dir: /opt/airflow/project
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -61,7 +72,9 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
       PYTHONPATH: /opt/airflow/project
-      _PIP_ADDITIONAL_REQUIREMENTS: "pandas==2.1.3 scikit-learn==1.3.2 mlflow==2.9.2 matplotlib==3.8.2"
+      DATA_DIR: /opt/airflow/project/m5_data
+      MODEL_DIR: /opt/airflow/project/models
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     command: webserver
     ports:
       - "8080:8080"
@@ -71,7 +84,11 @@ services:
     restart: unless-stopped
 
   airflow-scheduler:
-    image: apache/airflow:2.9.3
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    user: "50000:0"
+    working_dir: /opt/airflow/project
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -80,7 +97,9 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
       PYTHONPATH: /opt/airflow/project
-      _PIP_ADDITIONAL_REQUIREMENTS: "pandas==2.1.3 scikit-learn==1.3.2 mlflow==2.9.2 matplotlib==3.8.2"
+      DATA_DIR: /opt/airflow/project/m5_data
+      MODEL_DIR: /opt/airflow/project/models
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     command: scheduler
     volumes:
       - .:/opt/airflow/project

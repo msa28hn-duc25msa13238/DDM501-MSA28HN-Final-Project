@@ -5,7 +5,7 @@ import json
 
 from pipeline.config import TrainingConfig
 from pipeline.data_ingestion import load_modeling_frame
-from pipeline.evaluation import evaluate_model, save_model_bundle
+from pipeline.evaluation import evaluate_model, log_run_artifacts, save_model_bundle
 from pipeline.features import build_feature_frame, select_feature_columns, split_train_validation
 from pipeline.registry import register_best_model
 from pipeline.training import train_model
@@ -48,6 +48,11 @@ def run_pipeline(
         metrics,
         training_config,
         params=train_result.params,
+        run_id=train_result.run_id,
+    )
+    log_run_artifacts(
+        artifact_path,
+        training_config,
         run_id=train_result.run_id,
     )
 

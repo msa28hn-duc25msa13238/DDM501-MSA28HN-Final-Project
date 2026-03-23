@@ -60,9 +60,9 @@ def evaluate_model(
 
         with mlflow.start_run(run_id=run_id):
             mlflow.log_metrics(metrics)
-            mlflow.log_artifact(str(predictions_path))
-            mlflow.log_artifact(str(metrics_path))
-            mlflow.log_artifact(str(figure_path))
+            mlflow.log_artifact(str(predictions_path), artifact_path="evaluation")
+            mlflow.log_artifact(str(metrics_path), artifact_path="evaluation")
+            mlflow.log_artifact(str(figure_path), artifact_path="evaluation")
 
     return metrics, prediction_frame
 
@@ -91,3 +91,21 @@ def save_model_bundle(
     with config.model_artifact_path.open("wb") as handle:
         pickle.dump(bundle, handle)
     return config.model_artifact_path
+
+
+def log_run_artifacts(
+    artifact_path: Path,
+    config: TrainingConfig,
+    *,
+    run_id: str | None,
+) -> None:
+    if not run_id or not config.enable_mlflow:
+        return
+
+    try:
+        import mlflow
+    except ImportError:
+        return
+
+    with mlflow.start_run(run_id=run_id):
+        mlflow.log_artifact(str(artifact_path), artifact_path="bundle")

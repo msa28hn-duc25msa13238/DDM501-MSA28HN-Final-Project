@@ -144,12 +144,6 @@ http://localhost:5001
 The repository includes a weekly retraining DAG in
 [`dags/ml_training_dag.py`](/Users/albertdinh/Programming/DDM501/ddm501_msa28hn_demand_forecast/dags/ml_training_dag.py).
 
-The simplest way to run Airflow is through Docker Compose:
-
-```bash
-docker compose up --build
-```
-
 Airflow UI:
 
 ```text
@@ -158,18 +152,73 @@ http://localhost:8080
 
 Default credentials are set in `docker-compose.yml` for local development only.
 
-## Docker
+## Docker Demo Workflow
 
-Build and run the API:
+For the lab demo, use Docker Compose in modular steps rather than one large
+`docker compose up` command. Long-running services should be started with
+`docker compose up`, while one-off jobs such as experiment runs and training
+should be executed with `docker compose run --rm`.
+
+Run these commands from the project root:
+
+1. Start MLflow:
 
 ```bash
-docker compose up --build api
+docker compose up --build -d mlflow
 ```
 
-Run the supporting MLOps stack:
+2. Initialize Airflow metadata and create the local admin user:
 
 ```bash
-docker compose up --build
+docker compose up --build airflow-init
+```
+
+3. Run the experiment batch and log runs to MLflow:
+
+```bash
+docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m experiments.run_experiments
+```
+
+4. Train the final model artifact used by the API:
+
+```bash
+docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m pipeline.run_pipeline
+```
+
+5. Start the API and Airflow services:
+
+```bash
+docker compose up -d api airflow-webserver airflow-scheduler
+```
+
+6. Verify container status:
+
+```bash
+docker compose ps
+```
+
+Useful URLs after startup:
+
+- API docs: `http://localhost:8000/docs`
+- API health: `http://localhost:8000/health`
+- MLflow UI: `http://localhost:5001`
+- Airflow UI: `http://localhost:8080`
+- Airflow login: `admin` / `admin`
+
+If `models/forecast_model.pkl` already exists and you only want to bring the
+stack back up without rerunning experiments and training:
+
+```bash
+docker compose up -d mlflow
+docker compose up airflow-init
+docker compose up -d api airflow-webserver airflow-scheduler
+docker compose ps
+```
+
+To stop the stack:
+
+```bash
+docker compose down
 ```
 
 ## Tests

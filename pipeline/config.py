@@ -7,9 +7,9 @@ import os
 
 @dataclass
 class TrainingConfig:
-    data_dir: Path = Path("m5_data")
-    model_dir: Path = Path("models")
-    model_artifact_name: str = "forecast_model.pkl"
+    data_dir: Path = Path(os.getenv("DATA_DIR", "m5_data"))
+    model_dir: Path = Path(os.getenv("MODEL_DIR", "models"))
+    model_artifact_name: str = os.getenv("MODEL_ARTIFACT_NAME", "forecast_model.pkl")
     experiment_name: str = "m5-demand-forecast"
     tracking_uri: str = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
     registry_model_name: str = "m5-demand-forecast-model"
