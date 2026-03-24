@@ -260,13 +260,61 @@ docker compose down
 pytest -v
 ```
 
-## CI and pre-commit
+## CI/CD (GitHub Actions)
 
-- **GitHub Actions** (`.github/workflows/ci.yml`): Ruff lint + format check,
-  **`pip-audit`** on `requirements.txt`, **`pytest`** on pushes and pull requests
-  to `main` / `master`.
-- **Pre-commit** (optional): `pip install pre-commit && pre-commit install`, then
-  `pre-commit run --all-files`.
+This repository includes 3 workflows under `.github/workflows/`:
+
+- `ci.yml`: runs on pull requests and pushes to `main`, `develop`, and `master`
+  - runs on GitHub-hosted runner (`ubuntu-latest`)
+  - Python 3.12, cached pip installs from `requirements.txt`
+  - **Ruff** lint + format check, **`pip-audit`** on `requirements.txt`, `pip check`, then **`pytest -v`**
+  - builds both Docker images (`Dockerfile` and `Dockerfile.airflow`)
+- `cd.yml`: runs on pushes to `main` and `develop`, and manual dispatch
+  - runs on GitHub-hosted runner (`ubuntu-latest`)
+  - build and push images to GitHub Container Registry (GHCR)
+  - tags both `latest` and `sha-<commit>`
+  - optionally triggers staging deploy webhook when `DEPLOY_WEBHOOK_URL` secret is set
+- `retrain.yml`: runs weekly and manual dispatch
+  - runs on a self-hosted Windows runner with labels `self-hosted`, `Windows`, `X64`, `m5-local`
+  - validates `M5_DATA_DIR`, local MLflow availability, and MLflow Python import
+  - trains model with Python 3.12 and writes `pipeline_result.json`
+  - fails if `run_id` is null (to ensure retrain was actually logged to MLflow)
+  - checks a WAPE quality gate
+  - uploads the retrained model artifact
+
+### Pre-commit (optional)
+
+`pip install pre-commit && pre-commit install`, then `pre-commit run --all-files`.
+
+### Required Repository Settings
+
+Configure the following repository secrets in GitHub:
+
+- `DEPLOY_WEBHOOK_URL` (optional): webhook endpoint used by `cd.yml`
+- `M5_DATA_DIR` (required for `retrain.yml`): absolute path to M5 CSV directory on the self-hosted runner, for example `D:\datasets\m5_data`
+
+For retraining, `retrain.yml` uses local MLflow on the self-hosted runner:
+
+- `MLFLOW_TRACKING_URI=http://127.0.0.1:5001`
+
+Start MLflow on that machine before running retrain:
+
+```bash
+docker compose up -d mlflow
+```
+
+If `M5_DATA_DIR` is not set, the retraining workflow exits early without training.
+
+`retrain.yml` also pins `setuptools==69.5.1` to ensure `pkg_resources` is available for MLflow on the runner.
+
+### Container Images
+
+`cd.yml` publishes:
+
+- `ghcr.io/<owner>/m5-forecast-api:latest`
+- `ghcr.io/<owner>/m5-forecast-api:sha-<commit>`
+- `ghcr.io/<owner>/m5-forecast-airflow:latest`
+- `ghcr.io/<owner>/m5-forecast-airflow:sha-<commit>`
 
 ## Lab Mapping
 
