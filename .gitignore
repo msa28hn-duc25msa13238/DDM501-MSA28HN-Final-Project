@@ -153,6 +153,7 @@ activemq-data/
 .venv
 .tmpvenv
 .ci_check_venv/
+.audit_venv/
 env/
 venv/
 ENV/
