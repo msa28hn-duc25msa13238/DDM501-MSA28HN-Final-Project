@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import AppSettings
 from app.predictor import DemandForecaster
-from app.schemas import HealthResponse, ModelInfoResponse, PredictionRequest, PredictionResponse
+from app.schemas import (
+    HealthResponse,
+    ModelInfoResponse,
+    PredictionRequest,
+    PredictionResponse,
+)
 
 
 def create_app(settings: AppSettings | None = None) -> FastAPI:
+    load_dotenv()
     app_settings = settings or AppSettings.from_env()
     forecaster = DemandForecaster(app_settings)
 
@@ -53,6 +61,10 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
             forecasts=forecasts,
             model_version=app.state.forecaster.model_version or "unknown",
         )
+
+    Instrumentator().instrument(app).expose(
+        app, endpoint="/metrics", include_in_schema=False
+    )
 
     return app
 

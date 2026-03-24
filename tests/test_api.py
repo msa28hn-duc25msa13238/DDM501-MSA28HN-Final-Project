@@ -10,9 +10,13 @@ from app.main import create_app
 from tests.helpers import create_test_bundle, write_calendar_csv
 
 
-async def _request(app, method: str, path: str, payload: dict | None = None) -> httpx.Response:
+async def _request(
+    app, method: str, path: str, payload: dict | None = None
+) -> httpx.Response:
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
         return await client.request(method, path, json=payload)
 
 
@@ -24,10 +28,19 @@ def test_health_and_model_info(tmp_path: Path) -> None:
     write_calendar_csv(data_dir / "calendar.csv")
     create_test_bundle(model_dir / "forecast_model.pkl")
 
-    app = create_app(AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir))
+    app = create_app(
+        AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir)
+    )
     health_response = asyncio.run(_request(app, "GET", "/health"))
     assert health_response.status_code == 200
     assert health_response.json()["model_loaded"] is True
+
+    metrics_response = asyncio.run(_request(app, "GET", "/metrics"))
+    assert metrics_response.status_code == 200
+    assert (
+        b"http_requests" in metrics_response.content
+        or b"prometheus" in metrics_response.content.lower()
+    )
 
     info_response = asyncio.run(_request(app, "GET", "/model/info"))
     assert info_response.status_code == 200
@@ -42,22 +55,24 @@ def test_predict_endpoint(tmp_path: Path) -> None:
     write_calendar_csv(data_dir / "calendar.csv", days=60)
     create_test_bundle(model_dir / "forecast_model.pkl")
 
-    app = create_app(AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir))
+    app = create_app(
+        AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir)
+    )
     response = asyncio.run(
         _request(
             app,
             "POST",
             "/predict",
             {
-            "item_id": "FOODS_1_001",
-            "dept_id": "FOODS_1",
-            "cat_id": "FOODS",
-            "store_id": "CA_1",
-            "state_id": "CA",
-            "forecast_start_date": "2016-01-29",
-            "horizon": 3,
-            "recent_demand": [float(index % 5) for index in range(28)],
-            "current_price": 4.5,
+                "item_id": "FOODS_1_001",
+                "dept_id": "FOODS_1",
+                "cat_id": "FOODS",
+                "store_id": "CA_1",
+                "state_id": "CA",
+                "forecast_start_date": "2016-01-29",
+                "horizon": 3,
+                "recent_demand": [float(index % 5) for index in range(28)],
+                "current_price": 4.5,
             },
         )
     )
@@ -75,21 +90,23 @@ def test_predict_validation_error(tmp_path: Path) -> None:
     write_calendar_csv(data_dir / "calendar.csv")
     create_test_bundle(model_dir / "forecast_model.pkl")
 
-    app = create_app(AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir))
+    app = create_app(
+        AppSettings(model_path=model_dir / "forecast_model.pkl", data_dir=data_dir)
+    )
     response = asyncio.run(
         _request(
             app,
             "POST",
             "/predict",
             {
-            "item_id": "FOODS_1_001",
-            "dept_id": "FOODS_1",
-            "cat_id": "FOODS",
-            "store_id": "CA_1",
-            "state_id": "CA",
-            "forecast_start_date": "2016-01-29",
-            "horizon": 3,
-            "recent_demand": [1.0, 2.0],
+                "item_id": "FOODS_1_001",
+                "dept_id": "FOODS_1",
+                "cat_id": "FOODS",
+                "store_id": "CA_1",
+                "state_id": "CA",
+                "forecast_start_date": "2016-01-29",
+                "horizon": 3,
+                "recent_demand": [1.0, 2.0],
             },
         )
     )

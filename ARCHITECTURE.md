@@ -66,11 +66,16 @@ Main use cases:
 
 - API service starts successfully and returns `model_loaded=true` on `/health`
   after training.
+- **`GET /metrics`** exposes Prometheus-format HTTP metrics (latency histograms,
+  request counters) for scraping; optionally validated via a local Prometheus
+  service in Docker Compose.
 - Airflow DAG completes the retraining path without manual code changes.
 - MLflow stores run parameters, metrics, model artifacts, evaluation artifacts,
   and the final bundle artifact for each run.
 - Dockerized services can be brought up through a documented, modular command
   sequence.
+- CI (GitHub Actions) runs lint (**Ruff**), **`pip-audit`** on locked
+  dependencies, and **`pytest`** on push/PR to `main`/`master`.
 
 #### Model-Level Metrics
 
@@ -160,6 +165,11 @@ flowchart LR
 - The model is global: one regressor is trained across sampled item-store-date
   rows.
 - Model parameters can be varied for experiment comparison.
+- **Reproducibility:** `pipeline/seed.py` defines `set_global_seed()` (Python and
+  NumPy). `pipeline/run_pipeline.py` invokes it before ingestion. Regressor
+  `random_state` comes from `TrainingConfig.random_state`, which defaults from
+  the **`RANDOM_STATE`** environment variable (see `.env.example`). MLflow logs
+  `random_state` with other params.
 
 #### 4. Evaluation and Artifact Layer
 
@@ -199,18 +209,41 @@ flowchart LR
   - `/health`
   - `/model/info`
   - `/predict`
+  - **`/metrics`** — Prometheus exposition (HTTP request duration, counts),
+    via `prometheus-fastapi-instrumentator` (hidden from OpenAPI schema).
 - `app/predictor.py` loads the model bundle and `calendar.csv`, then generates
   recursive daily forecasts from recent demand history.
+- Local settings load optional **`.env`** through `python-dotenv` in `create_app`
+  and training entrypoints.
 
 #### 8. Container and Runtime Layer
 
 - `docker-compose.yml` coordinates:
   - API service
+  - **Prometheus** (scrapes `http://api:8000/metrics` using
+    `monitoring/prometheus.yml`)
   - MLflow tracking service
   - Airflow init
   - Airflow webserver
   - Airflow scheduler
 - Docker is used to standardize runtime behavior and simplify the demo workflow.
+
+#### 9. ML Quality & Load Testing (Optional Tooling)
+
+- **`scripts/evidently_report.py`** — builds an HTML **data drift** report from
+  two feature CSVs (reference vs current), aligned with training feature columns;
+  supports `--demo` for a smoke run without M5 data.
+- **`simulations/locustfile.py`** — load test `POST /predict` (requires
+  `pip install locust`).
+- **`simulations/benchmark_offline.py`** — measures repeated
+  `DemandForecaster.predict` latency without HTTP.
+
+#### 10. Engineering Quality Layer
+
+- **`.pre-commit-config.yaml`** — Ruff lint and format on commit (optional local
+  install: `pre-commit`).
+- **`.github/workflows/ci.yml`** — install `requirements.txt`, Ruff check +
+  format check, `pip-audit`, `pytest`.
 
 ### Data Flow Diagrams
 
@@ -252,11 +285,15 @@ flowchart TD
 | Data processing | `pandas`, `numpy` | Standard tabular processing stack for reshaping M5 data and building lag/rolling features quickly. |
 | Model training | `scikit-learn` | Reliable baseline ML framework, simple to package, and sufficient for a global boosted-tree regressor. |
 | API serving | `FastAPI`, `Pydantic`, `Uvicorn` | Lightweight API framework with strong request validation, built-in docs, and straightforward local serving. |
+| HTTP metrics | `prometheus-fastapi-instrumentator`, Prometheus | Standard RED-style visibility for latency and traffic; scrape-friendly `/metrics` for demos and ops. |
+| Drift reporting | `evidently` | Off-the-shelf data drift presets and HTML reports without building custom statistical dashboards first. |
+| Config | `python-dotenv`, `.env.example` | Documented env vars for paths, MLflow URI, and **`RANDOM_STATE`** without mandating a heavier config framework. |
 | Experiment tracking | `MLflow` | Tracks params, metrics, models, and artifacts in a standard UI without adding major infrastructure complexity. |
 | Orchestration | `Airflow` | Clear DAG-based workflow orchestration for retraining and lab-style MLOps demonstrations. |
 | Visualization | `matplotlib` | Sufficient for simple validation forecast plots. |
-| Containerization | `Docker`, `Docker Compose` | Reproducible multi-service local environment for API, MLflow, and Airflow. |
-| Testing | `pytest`, `httpx` | Fast local validation of pipeline logic and API behavior. |
+| Containerization | `Docker`, `Docker Compose` | Reproducible multi-service local environment for API, MLflow, Airflow, and optional Prometheus. |
+| Testing & CI | `pytest`, `httpx`, `ruff`, `pip-audit`, GitHub Actions | Automated style, dependency CVE scan, and regression tests on each PR. |
+| Load testing (optional) | Locust (`simulations/locustfile.py`) | Python-native HTTP load generation aligned with the same `/predict` contract. |
 
 ### Trade-Offs Analysis
 

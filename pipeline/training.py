@@ -25,10 +25,14 @@ def _resolve_experiment_name(mlflow_module, config: TrainingConfig) -> str:
     experiment = client.get_experiment_by_name(config.experiment_name)
     if experiment is None:
         artifact_root = str((Path.cwd() / "mlruns" / config.experiment_name).resolve())
-        client.create_experiment(config.experiment_name, artifact_location=artifact_root)
+        client.create_experiment(
+            config.experiment_name, artifact_location=artifact_root
+        )
         return config.experiment_name
 
-    if config.tracking_uri.startswith("sqlite:") and experiment.artifact_location.startswith("/app/"):
+    if config.tracking_uri.startswith(
+        "sqlite:"
+    ) and experiment.artifact_location.startswith("/app/"):
         local_name = f"{config.experiment_name}-local"
         local_experiment = client.get_experiment_by_name(local_name)
         if local_experiment is None:
@@ -64,7 +68,12 @@ def _maybe_mlflow_run(config: TrainingConfig, run_name: str | None):
         yield run
 
 
-def build_estimator(model_params: dict[str, float | int] | None = None, include_price: bool = True) -> Pipeline:
+def build_estimator(
+    model_params: dict[str, float | int] | None = None,
+    include_price: bool = True,
+    *,
+    random_state: int = 42,
+) -> Pipeline:
     params = {
         "learning_rate": 0.05,
         "max_depth": 8,
@@ -96,7 +105,7 @@ def build_estimator(model_params: dict[str, float | int] | None = None, include_
         max_iter=int(params["max_iter"]),
         min_samples_leaf=int(params["min_samples_leaf"]),
         l2_regularization=float(params["l2_regularization"]),
-        random_state=42,
+        random_state=int(random_state),
     )
     return Pipeline([("preprocessor", preprocessor), ("regressor", regressor)])
 
@@ -113,7 +122,11 @@ def train_model(
     if model_params:
         params.update(model_params)
 
-    estimator = build_estimator(params, include_price=config.include_price)
+    estimator = build_estimator(
+        params,
+        include_price=config.include_price,
+        random_state=config.random_state,
+    )
 
     with _maybe_mlflow_run(config, run_name) as run:
         if run is not None:
@@ -121,6 +134,7 @@ def train_model(
             import mlflow.sklearn
 
             mlflow.log_params(params)
+            mlflow.log_param("random_state", config.random_state)
             mlflow.log_param("include_price", config.include_price)
             mlflow.log_param("max_series", config.max_series)
             mlflow.log_param("recent_days", config.recent_days)

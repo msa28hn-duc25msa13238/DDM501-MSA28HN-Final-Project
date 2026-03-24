@@ -151,6 +151,7 @@ activemq-data/
 .env
 .envrc
 .venv
+.tmpvenv
 env/
 venv/
 ENV/
@@ -229,3 +230,6 @@ models/*.json
 mlruns/
 airflow_home/
 logs/
+
+# Generated drift / monitoring reports (keep directory local)
+reports/

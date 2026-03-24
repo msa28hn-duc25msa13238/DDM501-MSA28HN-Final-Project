@@ -15,13 +15,19 @@ def _day_number(day_id: str) -> int:
 
 def _snap_for_state(frame: pd.DataFrame) -> pd.Series:
     return np.select(
-        [frame["state_id"].eq("CA"), frame["state_id"].eq("TX"), frame["state_id"].eq("WI")],
+        [
+            frame["state_id"].eq("CA"),
+            frame["state_id"].eq("TX"),
+            frame["state_id"].eq("WI"),
+        ],
         [frame["snap_CA"], frame["snap_TX"], frame["snap_WI"]],
         default=0,
     )
 
 
-def _select_day_columns(calendar: pd.DataFrame, available_days: set[str], config: TrainingConfig) -> list[str]:
+def _select_day_columns(
+    calendar: pd.DataFrame, available_days: set[str], config: TrainingConfig
+) -> list[str]:
     total_days = config.recent_days + config.validation_days + config.max_lag_days
     day_frame = calendar[["d"]].copy()
     day_frame["day_number"] = day_frame["d"].map(_day_number)
@@ -41,7 +47,9 @@ def load_modeling_frame(config: TrainingConfig) -> pd.DataFrame:
 
     sales = pd.read_csv(sales_path, usecols=ID_COLUMNS + selected_days)
     if config.max_series and config.max_series < len(sales):
-        sales = sales.sample(n=config.max_series, random_state=config.random_state).reset_index(drop=True)
+        sales = sales.sample(
+            n=config.max_series, random_state=config.random_state
+        ).reset_index(drop=True)
 
     long_frame = sales.melt(
         id_vars=ID_COLUMNS,
@@ -55,9 +63,9 @@ def load_modeling_frame(config: TrainingConfig) -> pd.DataFrame:
 
     prices = pd.read_csv(prices_path)
     merged = merged.merge(prices, on=["store_id", "item_id", "wm_yr_wk"], how="left")
-    merged["sell_price"] = (
-        merged.groupby(["store_id", "item_id"], sort=False)["sell_price"].transform(lambda s: s.ffill().bfill())
-    )
+    merged["sell_price"] = merged.groupby(["store_id", "item_id"], sort=False)[
+        "sell_price"
+    ].transform(lambda s: s.ffill().bfill())
     merged["sell_price"] = merged["sell_price"].fillna(0.0)
     merged["snap"] = _snap_for_state(merged)
 

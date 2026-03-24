@@ -3,10 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 
+from dotenv import load_dotenv
+
 from pipeline.config import TrainingConfig
 from pipeline.data_ingestion import load_modeling_frame
+from pipeline.seed import set_global_seed
 from pipeline.evaluation import evaluate_model, log_run_artifacts, save_model_bundle
-from pipeline.features import build_feature_frame, select_feature_columns, split_train_validation
+from pipeline.features import (
+    build_feature_frame,
+    select_feature_columns,
+    split_train_validation,
+)
 from pipeline.registry import register_best_model
 from pipeline.training import train_model
 
@@ -18,6 +25,7 @@ def run_pipeline(
     model_params: dict[str, float | int] | None = None,
 ) -> dict[str, object]:
     training_config = config or TrainingConfig()
+    set_global_seed(training_config.random_state)
 
     raw_frame = load_modeling_frame(training_config)
     feature_frame = build_feature_frame(raw_frame)
@@ -71,7 +79,9 @@ def run_pipeline(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the baseline M5 demand forecasting pipeline.")
+    parser = argparse.ArgumentParser(
+        description="Train the baseline M5 demand forecasting pipeline."
+    )
     parser.add_argument("--max-series", type=int, default=300)
     parser.add_argument("--recent-days", type=int, default=365)
     parser.add_argument("--validation-days", type=int, default=28)
@@ -82,6 +92,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    load_dotenv()
     args = parse_args()
     config = TrainingConfig(
         max_series=args.max_series,
@@ -90,6 +101,9 @@ def main() -> None:
         enable_mlflow=not args.disable_mlflow,
         include_price=not args.disable_price,
         register_model=args.register_model,
+        **(
+            {"random_state": args.random_state} if args.random_state is not None else {}
+        ),
     )
     result = run_pipeline(config)
     print(json.dumps(result, indent=2))

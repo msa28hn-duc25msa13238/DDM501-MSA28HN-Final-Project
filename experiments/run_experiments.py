@@ -3,16 +3,38 @@ from __future__ import annotations
 import argparse
 import json
 
+from dotenv import load_dotenv
+
 from pipeline.config import TrainingConfig
 from pipeline.run_pipeline import run_pipeline
 
 
 EXPERIMENTS = [
-    {"name": "baseline_with_price", "include_price": True, "model_params": {"max_depth": 8, "max_iter": 250}},
-    {"name": "baseline_without_price", "include_price": False, "model_params": {"max_depth": 8, "max_iter": 250}},
-    {"name": "shallower_model", "include_price": True, "model_params": {"max_depth": 6, "max_iter": 250}},
-    {"name": "faster_learning_rate", "include_price": True, "model_params": {"learning_rate": 0.08, "max_iter": 220}},
-    {"name": "deeper_model", "include_price": True, "model_params": {"max_depth": 10, "max_iter": 320}},
+    {
+        "name": "baseline_with_price",
+        "include_price": True,
+        "model_params": {"max_depth": 8, "max_iter": 250},
+    },
+    {
+        "name": "baseline_without_price",
+        "include_price": False,
+        "model_params": {"max_depth": 8, "max_iter": 250},
+    },
+    {
+        "name": "shallower_model",
+        "include_price": True,
+        "model_params": {"max_depth": 6, "max_iter": 250},
+    },
+    {
+        "name": "faster_learning_rate",
+        "include_price": True,
+        "model_params": {"learning_rate": 0.08, "max_iter": 220},
+    },
+    {
+        "name": "deeper_model",
+        "include_price": True,
+        "model_params": {"max_depth": 10, "max_iter": 320},
+    },
 ]
 
 
@@ -40,7 +62,9 @@ def run_all_experiments(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the Lab 2 MLflow experiment batch.")
+    parser = argparse.ArgumentParser(
+        description="Run the Lab 2 MLflow experiment batch."
+    )
     parser.add_argument("--max-series", type=int, default=300)
     parser.add_argument("--recent-days", type=int, default=365)
     parser.add_argument("--validation-days", type=int, default=28)
@@ -48,6 +72,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    load_dotenv()
     args = parse_args()
     print(
         json.dumps(

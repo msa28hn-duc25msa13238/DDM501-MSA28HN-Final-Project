@@ -49,16 +49,24 @@ def add_demand_features(frame: pd.DataFrame) -> pd.DataFrame:
     enriched["lag_1"] = grouped.shift(1)
     enriched["lag_7"] = grouped.shift(7)
     enriched["lag_28"] = grouped.shift(28)
-    enriched["rolling_mean_7"] = grouped.transform(lambda s: s.shift(1).rolling(7).mean())
-    enriched["rolling_mean_28"] = grouped.transform(lambda s: s.shift(1).rolling(28).mean())
-    enriched["rolling_std_28"] = grouped.transform(lambda s: s.shift(1).rolling(28).std())
+    enriched["rolling_mean_7"] = grouped.transform(
+        lambda s: s.shift(1).rolling(7).mean()
+    )
+    enriched["rolling_mean_28"] = grouped.transform(
+        lambda s: s.shift(1).rolling(28).mean()
+    )
+    enriched["rolling_std_28"] = grouped.transform(
+        lambda s: s.shift(1).rolling(28).std()
+    )
     return enriched
 
 
 def build_feature_frame(frame: pd.DataFrame) -> pd.DataFrame:
     feature_frame = add_demand_features(frame)
     feature_frame["rolling_std_28"] = feature_frame["rolling_std_28"].fillna(0.0)
-    feature_frame = feature_frame.dropna(subset=["lag_1", "lag_7", "lag_28", "rolling_mean_7", "rolling_mean_28"])
+    feature_frame = feature_frame.dropna(
+        subset=["lag_1", "lag_7", "lag_28", "rolling_mean_7", "rolling_mean_28"]
+    )
     return feature_frame.reset_index(drop=True)
 
 
@@ -73,7 +81,9 @@ def split_train_validation(
     feature_columns = select_feature_columns(include_price=include_price)
 
     if train_frame.empty or validation_frame.empty:
-        raise ValueError("Train/validation split is empty. Increase available history or reduce validation_days.")
+        raise ValueError(
+            "Train/validation split is empty. Increase available history or reduce validation_days."
+        )
 
     validation_meta = validation_frame[["date", "id", "item_id", "store_id"]].copy()
     return (
@@ -116,7 +126,9 @@ def build_inference_row(
 ) -> dict[str, float | int | str]:
     demand_history = [float(value) for value in history]
     if len(demand_history) < REQUIRED_HISTORY:
-        raise ValueError(f"At least {REQUIRED_HISTORY} days of recent demand are required.")
+        raise ValueError(
+            f"At least {REQUIRED_HISTORY} days of recent demand are required."
+        )
 
     last_7 = demand_history[-7:]
     last_28 = demand_history[-28:]
