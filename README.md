@@ -337,6 +337,78 @@ Useful URLs after startup:
 - Airflow login: `admin` / `admin`
 - Grafana login: `admin` / `admin`
 
+### Verify Monitoring Stack
+
+Start the monitoring services and confirm they are all up:
+
+```bash
+docker compose up -d api prometheus grafana alertmanager
+docker compose ps
+```
+
+In **Prometheus** (`http://localhost:9090`), check `Status -> Targets` and
+confirm `api` is `UP`. Then run:
+
+```promql
+up{job="api"}
+sum(rate(http_requests_total{job="api"}[5m])) by (handler, method, status)
+histogram_quantile(0.95, sum by (le, handler, method) (rate(http_request_duration_seconds_bucket{job="api"}[5m])))
+```
+
+Generate traffic:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/model/info
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "item_id": "FOODS_1_001",
+    "dept_id": "FOODS_1",
+    "cat_id": "FOODS",
+    "store_id": "CA_1",
+    "state_id": "CA",
+    "forecast_start_date": "2016-04-25",
+    "horizon": 7,
+    "recent_demand": [0,1,0,2,1,0,0,3,2,1,0,1,2,0,0,1,1,0,2,2,1,0,1,3,1,0,2,2],
+    "current_price": 4.99
+  }'
+```
+
+In **Grafana** (`http://localhost:3000`), sign in with `admin` / `admin`, open
+`Dashboards -> M5 Demand Forecast -> M5 API Observability`, and confirm `API Up`
+shows `1`, request-rate panels move, and latency panels show values for
+`/health`, `/model/info`, and `/predict`. If the dashboard is missing, run
+`docker compose logs grafana`.
+
+In **Prometheus -> Alerts**, confirm these rules are loaded: `ApiDown`,
+`PredictEndpointHighP95Latency`, `High5xxErrorRate`, and
+`LowTrafficToPredictEndpoint`. Most should be `Inactive` in a healthy state. To
+test the full alert pipeline:
+
+```bash
+docker compose stop api
+docker compose start api
+```
+
+After stopping the API, `ApiDown` should go `Pending` then `Firing` in
+Prometheus and appear in **Alertmanager** (`http://localhost:9093`). After
+starting the API again, the alert should clear within a minute or two.
+
+Failure-state visuals after `docker compose stop api`:
+
+Prometheus target shows the API service as down:
+
+![Prometheus service down](./media/prometheus-service-down.png)
+
+Grafana dashboard reflects the API dropping from 1 to 0 services:
+
+![Grafana API one to zero services](./media/api-one-to-zero-services.png)
+
+Alertmanager shows the `ApiDown` alert firing:
+
+![Alertmanager API down](./media/alert-manager-api-down.png)
+
 If `models/forecast_model.pkl` already exists and you only want to bring the
 stack back up without rerunning experiments and training:
 
