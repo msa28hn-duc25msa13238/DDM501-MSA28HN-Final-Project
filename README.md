@@ -428,7 +428,12 @@ docker compose down
 ## Tests
 
 ```bash
-pytest -v
+.venv/bin/pytest -v
+.venv/bin/pytest tests/test_features.py tests/test_pipeline.py -v
+.venv/bin/pytest tests/test_api.py -v
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539
 ```
 
 ## CI/CD (GitHub Actions)
