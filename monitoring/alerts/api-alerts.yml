@@ -1,0 +1,42 @@
+groups:
+  - name: api-health
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "API target is down"
+          description: "Prometheus has failed to scrape the api job for more than 1 minute."
+
+      - alert: PredictEndpointHighP95Latency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="api",handler="/predict",method="POST"}[5m]))) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High p95 latency on POST /predict"
+          description: "The 95th percentile latency for POST /predict has been above 0.5s for 10 minutes."
+
+      - alert: High5xxErrorRate
+        expr: sum(rate(http_requests_total{job="api",status="5xx"}[5m])) / clamp_min(sum(rate(http_requests_total{job="api"}[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API 5xx error rate"
+          description: "More than 5% of API requests have returned 5xx responses during the last 5 minutes."
+
+      - alert: LowTrafficToPredictEndpoint
+        expr: sum(increase(http_requests_total{job="api",handler="/predict",method="POST"}[30m])) < 1
+        for: 30m
+        labels:
+          severity: info
+          service: api
+        annotations:
+          summary: "No recent traffic to POST /predict"
+          description: "The predict endpoint has not received any requests in the last 30 minutes."

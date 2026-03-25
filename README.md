@@ -12,7 +12,8 @@ reproducible ML product around the M5 data.
 
 **Operational guide (training, `/metrics`, Prometheus, Evidently, Locust, CI):**
 [PIPELINE_RUN.md](./PIPELINE_RUN.md) (Vietnamese). **Architecture and design
-rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring checklist:**
+rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring guide:**
+[MONITORING.md](./MONITORING.md)
 
 ## Project Structure
 
@@ -24,7 +25,7 @@ rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring checklist:**
 ├── dags/                    # Airflow DAGs
 ├── scripts/                 # Entrypoints (e.g. baseline train, Evidently report)
 ├── simulations/             # Locust load test, offline inference benchmark
-├── monitoring/              # Prometheus scrape config for Compose
+├── monitoring/              # Prometheus, Grafana, and alerting config
 ├── tests/                   # Unit tests
 ├── models/                  # Local model artifacts (.pkl; not committed by default)
 ├── .github/workflows/       # CI: Ruff, pip-audit, pytest
@@ -34,6 +35,7 @@ rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring checklist:**
 ├── .pre-commit-config.yaml  # Optional: Ruff on commit
 ├── requirements.txt
 ├── ARCHITECTURE.md
+├── MONITORING.md
 └── PIPELINE_RUN.md
 ```
 
@@ -59,6 +61,8 @@ flowchart LR
 
     subgraph runtime["Serving & Monitoring"]
         prometheus["Prometheus<br/>monitoring/prometheus.yml"]
+        grafana["Grafana Dashboards"]
+        alertmanager["Alertmanager"]
     end
 
     m5 --> ingest --> features --> train --> bundle
@@ -67,13 +71,16 @@ flowchart LR
     airflow --> train
     bundle --> api
     prometheus -->|"scrapes /metrics"| api
+    grafana -->|"queries"| prometheus
+    prometheus -->|"sends alerts"| alertmanager
 ```
 
 The system trains a baseline forecasting model from the M5 dataset, logs runs
 and artifacts to MLflow, packages the deployable model into
 `models/forecast_model.pkl`, and serves recursive demand forecasts through the
-FastAPI API. Airflow orchestrates scheduled retraining, while Prometheus can
-scrape API metrics for local monitoring.
+FastAPI API. Airflow orchestrates scheduled retraining, while Prometheus,
+Grafana, and Alertmanager provide local monitoring, dashboards, and starter
+alerting.
 
 ## Data Flow
 
@@ -305,10 +312,10 @@ docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m 
 docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m pipeline.run_pipeline
 ```
 
-5. Start the API, optional Prometheus scraper, and Airflow services:
+5. Start the API, monitoring stack, and Airflow services:
 
 ```bash
-docker compose up -d api prometheus airflow-webserver airflow-scheduler
+docker compose up -d api prometheus grafana alertmanager airflow-webserver airflow-scheduler
 ```
 
 6. Verify container status:
@@ -323,9 +330,12 @@ Useful URLs after startup:
 - API health: `http://localhost:8000/health`
 - API metrics: `http://localhost:8000/metrics`
 - Prometheus UI: `http://localhost:9090`
+- Grafana UI: `http://localhost:3000`
+- Alertmanager UI: `http://localhost:9093`
 - MLflow UI: `http://localhost:5001`
 - Airflow UI: `http://localhost:8080`
 - Airflow login: `admin` / `admin`
+- Grafana login: `admin` / `admin`
 
 If `models/forecast_model.pkl` already exists and you only want to bring the
 stack back up without rerunning experiments and training:
@@ -333,7 +343,7 @@ stack back up without rerunning experiments and training:
 ```bash
 docker compose up -d mlflow
 docker compose up airflow-init
-docker compose up -d api prometheus airflow-webserver airflow-scheduler
+docker compose up -d api prometheus grafana alertmanager airflow-webserver airflow-scheduler
 docker compose ps
 ```
 

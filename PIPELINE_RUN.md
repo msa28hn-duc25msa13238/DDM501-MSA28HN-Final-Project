@@ -1,6 +1,6 @@
 # Hướng dẫn chạy pipeline & thử nghiệm (M5 Demand Forecast)
 
-Tài liệu này mô tả **luồng hoàn chỉnh**: huấn luyện, API, giám sát Prometheus, báo cáo Evidently, kiểm thử tải, pre-commit và CI. Chi tiết kiến trúc: [ARCHITECTURE.md](./ARCHITECTURE.md). Monitoring vận hành: [MONITORING.md](./MONITORING.md). Mở rộng kỹ thuật: [PIPELINE_EXTENSIONS.md](./PIPELINE_EXTENSIONS.md).
+Tài liệu này mô tả **luồng hoàn chỉnh**: huấn luyện, API, giám sát Prometheus/Grafana, alerting, báo cáo Evidently, kiểm thử tải, pre-commit và CI. Chi tiết kiến trúc: [ARCHITECTURE.md](./ARCHITECTURE.md). Monitoring vận hành: [MONITORING.md](./MONITORING.md). Mở rộng kỹ thuật: [PIPELINE_EXTENSIONS.md](./PIPELINE_EXTENSIONS.md).
 
 ---
 
@@ -63,7 +63,7 @@ curl -s http://localhost:8000/metrics | head
 
 ---
 
-## 4. Docker Compose: API + MLflow + Airflow + Prometheus
+## 4. Docker Compose: API + MLflow + Airflow + Monitoring
 
 Từ thư mục gốc repo:
 
@@ -71,12 +71,14 @@ Từ thư mục gốc repo:
 2. `docker compose up --build airflow-init`
 3. Huấn luyện / thí nghiệm (tùy nhu cầu), ví dụ:
    - `docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m pipeline.run_pipeline`
-4. `docker compose up -d api prometheus airflow-webserver airflow-scheduler`
+4. `docker compose up -d api prometheus grafana alertmanager airflow-webserver airflow-scheduler`
 
 URL sau khi chạy:
 
 - API: http://localhost:8000  
 - Prometheus UI: http://localhost:9090 (job scrape `api:8000/metrics`, cấu hình trong [`monitoring/prometheus.yml`](./monitoring/prometheus.yml))  
+- Grafana UI: http://localhost:3000 (dashboard được provision sẵn từ `monitoring/grafana/`)  
+- Alertmanager UI: http://localhost:9093  
 - MLflow: http://localhost:5001  
 - Airflow: http://localhost:8080 (mặc định local: `admin` / `admin`)
 
@@ -143,5 +145,5 @@ Workflow: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) — cài `req
 1. `pytest -v` pass.  
 2. `python -m pipeline.run_pipeline` (hoặc Docker tương đương) tạo `models/forecast_model.pkl`.  
 3. `GET /health` → `healthy`, `GET /metrics` trả về text Prometheus.  
-4. Prometheus **Targets** thấy job `api` **UP** (nếu dùng Compose service `prometheus`).  
+4. Prometheus **Targets** thấy job `api` **UP**; Grafana mở được dashboard mặc định; Prometheus **Alerts** nạp được rule file.  
 5. (Tuỳ chọn) `python -m scripts.evidently_report --demo` tạo HTML trong `reports/`.
