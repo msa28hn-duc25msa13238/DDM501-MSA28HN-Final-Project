@@ -83,7 +83,11 @@ def test_run_pipeline_writes_responsible_ai_artifacts(tmp_path: Path) -> None:
     assert Path(
         responsible_ai["artifacts"]["fairness_group_metrics_csv"]
     ).exists()
-    assert Path(responsible_ai["artifacts"]["fairness_summary_json"]).exists()
+    assert Path(
+        responsible_ai["artifacts"]["fairness_summary_json"]
+    ).exists()
     assert Path(responsible_ai["artifacts"]["explainability_csv"]).exists()
-    assert Path(responsible_ai["artifacts"]["explainability_summary_json"]).exists()
+    assert Path(
+        responsible_ai["artifacts"]["explainability_summary_json"]
+    ).exists()
     assert Path(responsible_ai["artifacts"]["explainability_plot"]).exists()
