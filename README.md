@@ -37,6 +37,44 @@ rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring checklist:**
 └── PIPELINE_RUN.md
 ```
 
+## System Architecture
+
+```mermaid
+flowchart LR
+    user["API Consumer"] --> api["FastAPI Inference Service<br/>app/main.py"]
+    operator["ML Engineer / Operator"] --> mlflow["MLflow Tracking"]
+    operator --> airflow["Airflow Scheduler<br/>dags/ml_training_dag.py"]
+    operator --> api
+
+    subgraph data["Data Layer"]
+        m5["M5 CSV Dataset<br/>m5_data/"]
+    end
+
+    subgraph training["Training Pipeline"]
+        ingest["Data Ingestion<br/>pipeline/data_ingestion.py"]
+        features["Feature Engineering<br/>pipeline/features.py"]
+        train["Model Training + Evaluation<br/>pipeline/training.py<br/>pipeline/evaluation.py"]
+        bundle["Model Bundle<br/>models/forecast_model.pkl"]
+    end
+
+    subgraph runtime["Serving & Monitoring"]
+        prometheus["Prometheus<br/>monitoring/prometheus.yml"]
+    end
+
+    m5 --> ingest --> features --> train --> bundle
+    train --> mlflow
+    airflow --> ingest
+    airflow --> train
+    bundle --> api
+    prometheus -->|"scrapes /metrics"| api
+```
+
+The system trains a baseline forecasting model from the M5 dataset, logs runs
+and artifacts to MLflow, packages the deployable model into
+`models/forecast_model.pkl`, and serves recursive demand forecasts through the
+FastAPI API. Airflow orchestrates scheduled retraining, while Prometheus can
+scrape API metrics for local monitoring.
+
 ## Configuration
 
 - Copy [`.env.example`](./.env.example) to `.env` if you want local overrides.
