@@ -11,7 +11,9 @@ from pipeline.features import select_feature_columns
 from pipeline.training import build_estimator
 
 
-def write_calendar_csv(path: Path, days: int = 40, start: date = date(2016, 1, 1)) -> None:
+def write_calendar_csv(
+    path: Path, days: int = 40, start: date = date(2016, 1, 1)
+) -> None:
     rows = []
     for offset in range(days):
         current = start + timedelta(days=offset)
@@ -151,7 +153,9 @@ def write_synthetic_dataset(data_dir: Path) -> None:
     for index, row in enumerate(sales_rows):
         for day in range(1, 41):
             row[f"d_{day}"] = (day + index) % 6
-    pd.DataFrame(sales_rows).to_csv(data_dir / "sales_train_validation.csv", index=False)
+    pd.DataFrame(sales_rows).to_csv(
+        data_dir / "sales_train_validation.csv", index=False
+    )
 
     price_rows = []
     for item_id in ["FOODS_1_001", "FOODS_1_002"]:

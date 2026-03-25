@@ -12,8 +12,24 @@ services:
       XDG_CONFIG_HOME: /tmp/.config
       MODEL_PATH: /app/models/forecast_model.pkl
       DATA_DIR: /app/m5_data
+      RANDOM_STATE: "42"
     volumes:
       - .:/app
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    depends_on:
+      - api
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     restart: unless-stopped
 
   mlflow:

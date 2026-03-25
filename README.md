@@ -10,21 +10,39 @@ covers the main deliverables from DDM501 Lab 1 and Lab 2:
 The goal is not to win the M5 competition. The goal is to build a clean,
 reproducible ML product around the M5 data.
 
+**Operational guide (training, `/metrics`, Prometheus, Evidently, Locust, CI):**
+[PIPELINE_RUN.md](./PIPELINE_RUN.md) (Vietnamese). **Architecture and design
+rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring checklist:**
+
 ## Project Structure
 
 ```text
 .
-├── app/                  # FastAPI inference service
-├── pipeline/             # Training, evaluation, and registry logic
-├── experiments/          # Repeated MLflow experiment runs
-├── dags/                 # Airflow DAGs
-├── scripts/              # Convenience entrypoints
-├── tests/                # Unit tests
-├── models/               # Local model artifacts
+├── app/                     # FastAPI inference service
+├── pipeline/                # Training, evaluation, registry, reproducibility (seed)
+├── experiments/             # Repeated MLflow experiment runs
+├── dags/                    # Airflow DAGs
+├── scripts/                 # Entrypoints (e.g. baseline train, Evidently report)
+├── simulations/             # Locust load test, offline inference benchmark
+├── monitoring/              # Prometheus scrape config for Compose
+├── tests/                   # Unit tests
+├── models/                  # Local model artifacts (.pkl; not committed by default)
+├── .github/workflows/       # CI: Ruff, pip-audit, pytest
 ├── Dockerfile
 ├── docker-compose.yml
-└── requirements.txt
+├── .env.example             # Documented environment variables
+├── .pre-commit-config.yaml  # Optional: Ruff on commit
+├── requirements.txt
+├── ARCHITECTURE.md
+└── PIPELINE_RUN.md
 ```
+
+## Configuration
+
+- Copy [`.env.example`](./.env.example) to `.env` if you want local overrides.
+  Training and the API load **`python-dotenv`** so variables such as
+  **`RANDOM_STATE`**, `DATA_DIR`, `MODEL_PATH`, and `MLFLOW_TRACKING_URI` apply
+  without exporting them manually in the shell.
 
 ## Data
 
@@ -89,6 +107,12 @@ Health check for the service and model artifact.
 
 Returns model metadata, metrics, and artifact path.
 
+### `GET /metrics`
+
+Prometheus scrape endpoint (HTTP latency histograms and request metrics). Use
+with the **`prometheus`** service in Docker Compose or any external Prometheus
+that can reach the API.
+
 ### `POST /predict`
 
 Forecast demand from a recent demand history window.
@@ -117,6 +141,13 @@ Run a single training pipeline:
 python -m pipeline.run_pipeline
 ```
 
+Optional: fix the global seed for the run (also configurable via **`RANDOM_STATE`**
+in `.env`):
+
+```bash
+python -m pipeline.run_pipeline --random-state 42
+```
+
 Run the MLflow experiment batch:
 
 ```bash
@@ -142,7 +173,7 @@ http://localhost:5001
 ## Airflow
 
 The repository includes a weekly retraining DAG in
-[`dags/ml_training_dag.py`](/Users/albertdinh/Programming/DDM501/ddm501_msa28hn_demand_forecast/dags/ml_training_dag.py).
+[`dags/ml_training_dag.py`](./dags/ml_training_dag.py).
 
 Airflow UI:
 
@@ -185,10 +216,10 @@ docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m 
 docker compose run --rm -e MLFLOW_TRACKING_URI=http://mlflow:5000 api python -m pipeline.run_pipeline
 ```
 
-5. Start the API and Airflow services:
+5. Start the API, optional Prometheus scraper, and Airflow services:
 
 ```bash
-docker compose up -d api airflow-webserver airflow-scheduler
+docker compose up -d api prometheus airflow-webserver airflow-scheduler
 ```
 
 6. Verify container status:
@@ -201,6 +232,8 @@ Useful URLs after startup:
 
 - API docs: `http://localhost:8000/docs`
 - API health: `http://localhost:8000/health`
+- API metrics: `http://localhost:8000/metrics`
+- Prometheus UI: `http://localhost:9090`
 - MLflow UI: `http://localhost:5001`
 - Airflow UI: `http://localhost:8080`
 - Airflow login: `admin` / `admin`
@@ -211,7 +244,7 @@ stack back up without rerunning experiments and training:
 ```bash
 docker compose up -d mlflow
 docker compose up airflow-init
-docker compose up -d api airflow-webserver airflow-scheduler
+docker compose up -d api prometheus airflow-webserver airflow-scheduler
 docker compose ps
 ```
 
@@ -229,13 +262,13 @@ pytest -v
 
 ## CI/CD (GitHub Actions)
 
-This repository now includes 3 workflows under `.github/workflows/`:
+This repository includes 3 workflows under `.github/workflows/`:
 
-- `ci.yml`: runs on pull requests and pushes to `main` and `develop`
+- `ci.yml`: runs on pull requests and pushes to `main`, `develop`, and `master`
   - runs on GitHub-hosted runner (`ubuntu-latest`)
-  - install dependencies with Python 3.12
-  - run `pytest -v`
-  - build both Docker images (`Dockerfile` and `Dockerfile.airflow`)
+  - Python 3.12, cached pip installs from `requirements.txt`
+  - **Ruff** lint + format check, **`pip-audit`** on `requirements.txt`, `pip check`, then **`pytest -v`**
+  - builds both Docker images (`Dockerfile` and `Dockerfile.airflow`)
 - `cd.yml`: runs on pushes to `main` and `develop`, and manual dispatch
   - runs on GitHub-hosted runner (`ubuntu-latest`)
   - build and push images to GitHub Container Registry (GHCR)
@@ -248,6 +281,10 @@ This repository now includes 3 workflows under `.github/workflows/`:
   - fails if `run_id` is null (to ensure retrain was actually logged to MLflow)
   - checks a WAPE quality gate
   - uploads the retrained model artifact
+
+### Pre-commit (optional)
+
+`pip install pre-commit && pre-commit install`, then `pre-commit run --all-files`.
 
 ### Required Repository Settings
 
@@ -284,15 +321,22 @@ If `M5_DATA_DIR` is not set, the retraining workflow exits early without trainin
 Lab 1 deliverables covered by this repo:
 
 - trained model artifact and loading code
-- FastAPI app with `/health`, `/predict`, and `/model/info`
+- FastAPI app with `/health`, `/predict`, `/model/info`, and **`/metrics`**
+  (Prometheus)
 - Dockerfile and Compose service
 - pytest test suite
 - README and Swagger docs
 
 Lab 2 deliverables covered by this repo:
 
-- modular pipeline under `pipeline/`
+- modular pipeline under `pipeline/` (including reproducible **`RANDOM_STATE`** /
+  seed helper)
 - MLflow experiment tracking and model logging
 - experiment runner with multiple configurations
 - Airflow retraining DAG
 - model registry integration helper
+
+Additional MLOps-oriented pieces (see [PIPELINE_RUN.md](./PIPELINE_RUN.md)):
+
+- Prometheus in Compose, Evidently drift CLI, load-test scripts, CI with
+  **`pip-audit`**

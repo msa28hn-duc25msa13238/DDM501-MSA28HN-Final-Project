@@ -8,7 +8,9 @@ import os
 @dataclass
 class AppSettings:
     title: str = "M5 Demand Forecast API"
-    description: str = "API for serving recursive demand forecasts on M5-style retail data."
+    description: str = (
+        "API for serving recursive demand forecasts on M5-style retail data."
+    )
     version: str = "1.0.0"
     model_path: Path = Path("models/forecast_model.pkl")
     data_dir: Path = Path("m5_data")

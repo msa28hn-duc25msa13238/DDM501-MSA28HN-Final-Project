@@ -64,11 +64,15 @@ class DemandForecaster:
         try:
             return self.calendar.loc[forecast_date]
         except KeyError as exc:
-            raise RuntimeError(f"Date {forecast_date.date()} does not exist in calendar.csv.") from exc
+            raise RuntimeError(
+                f"Date {forecast_date.date()} does not exist in calendar.csv."
+            ) from exc
 
     def predict(self, request: PredictionRequest) -> list[dict[str, Any]]:
         if not self.model_loaded or not self.bundle:
-            raise RuntimeError("Model is not loaded. Train a model before serving predictions.")
+            raise RuntimeError(
+                "Model is not loaded. Train a model before serving predictions."
+            )
 
         history = [float(value) for value in request.recent_demand]
         feature_columns = self.bundle["feature_columns"]

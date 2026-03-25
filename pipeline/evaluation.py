@@ -8,7 +8,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from pipeline.config import TrainingConfig
 
@@ -23,7 +23,7 @@ def evaluate_model(
     run_id: str | None = None,
 ) -> tuple[dict[str, float], pd.DataFrame]:
     predictions = np.clip(model.predict(X_valid), 0.0, None)
-    rmse = float(mean_squared_error(y_valid, predictions, squared=False))
+    rmse = float(root_mean_squared_error(y_valid, predictions))
     mae = float(mean_absolute_error(y_valid, predictions))
     denominator = float(np.abs(y_valid).sum()) or 1.0
     wape = float(np.abs(y_valid - predictions).sum() / denominator)

@@ -19,7 +19,9 @@ class TrainingConfig:
     recent_days: int = 365
     validation_days: int = 28
     max_lag_days: int = 28
-    random_state: int = 42
+    random_state: int = field(
+        default_factory=lambda: int(os.getenv("RANDOM_STATE", "42"))
+    )
     register_model: bool = False
     model_params: dict[str, float | int] = field(
         default_factory=lambda: {

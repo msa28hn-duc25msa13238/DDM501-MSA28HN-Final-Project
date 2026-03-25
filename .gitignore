@@ -151,6 +151,9 @@ activemq-data/
 .env
 .envrc
 .venv
+.tmpvenv
+.ci_check_venv/
+.audit_venv/
 env/
 venv/
 ENV/
@@ -226,6 +229,11 @@ m5_data/
 # Model and experiment artifacts
 models/*.pkl
 models/*.json
+mlflow.db
+pipeline_result.json
 mlruns/
 airflow_home/
 logs/
+
+# Generated drift / monitoring reports (keep directory local)
+reports/

@@ -25,7 +25,9 @@ def register_best_model(config: TrainingConfig, stage: str = "Production") -> st
         raise RuntimeError("No completed runs found for registration.")
 
     best_run = runs[0]
-    registration = mlflow.register_model(f"runs:/{best_run.info.run_id}/model", config.registry_model_name)
+    registration = mlflow.register_model(
+        f"runs:/{best_run.info.run_id}/model", config.registry_model_name
+    )
     client.transition_model_version_stage(
         name=config.registry_model_name,
         version=registration.version,

@@ -10,7 +10,11 @@ from airflow.operators.python import PythonOperator
 from pipeline.config import TrainingConfig
 from pipeline.data_ingestion import load_modeling_frame
 from pipeline.evaluation import evaluate_model, save_model_bundle
-from pipeline.features import build_feature_frame, select_feature_columns, split_train_validation
+from pipeline.features import (
+    build_feature_frame,
+    select_feature_columns,
+    split_train_validation,
+)
 from pipeline.registry import register_best_model
 from pipeline.training import train_model
 
@@ -39,7 +43,9 @@ def train_model_fn() -> str:
         validation_days=CONFIG.validation_days,
         include_price=CONFIG.include_price,
     )
-    train_result = train_model(X_train, y_train, CONFIG, run_name="airflow_weekly_training")
+    train_result = train_model(
+        X_train, y_train, CONFIG, run_name="airflow_weekly_training"
+    )
 
     with TRAINING_PATH.open("wb") as handle:
         pickle.dump(
@@ -101,9 +107,15 @@ with DAG(
     schedule_interval="@weekly",
     catchup=False,
 ) as dag:
-    prepare_data = PythonOperator(task_id="prepare_data", python_callable=prepare_data_fn)
+    prepare_data = PythonOperator(
+        task_id="prepare_data", python_callable=prepare_data_fn
+    )
     train = PythonOperator(task_id="train_model", python_callable=train_model_fn)
-    evaluate = PythonOperator(task_id="evaluate_model", python_callable=evaluate_model_fn)
-    register = PythonOperator(task_id="register_model", python_callable=register_model_fn)
+    evaluate = PythonOperator(
+        task_id="evaluate_model", python_callable=evaluate_model_fn
+    )
+    register = PythonOperator(
+        task_id="register_model", python_callable=register_model_fn
+    )
 
     prepare_data >> train >> evaluate >> register
