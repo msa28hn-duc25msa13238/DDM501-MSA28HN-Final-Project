@@ -1,5 +1,9 @@
 # M5 Demand Forecast
 
+[![CI](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/ci.yml)
+[![CD](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/cd.yml/badge.svg)](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/cd.yml)
+[![Retrain Model](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/retrain.yml/badge.svg)](https://github.com/msa28hn-duc25msa13238/DDM501-MSA28HN-Final-Project/actions/workflows/retrain.yml)
+
 This repository implements an MLOps-first M5 demand forecasting project that
 covers the main deliverables from DDM501 Lab 1 and Lab 2:
 
