@@ -75,6 +75,39 @@ and artifacts to MLflow, packages the deployable model into
 FastAPI API. Airflow orchestrates scheduled retraining, while Prometheus can
 scrape API metrics for local monitoring.
 
+## Data Flow
+
+### Training and Experiment Flow
+
+```mermaid
+flowchart TD
+    raw["M5 CSV files<br/>m5_data/*.csv"] --> ingest["load_modeling_frame"]
+    ingest --> feat["build_feature_frame"]
+    feat --> split["split_train_validation"]
+    split --> train["train_model"]
+    train --> eval["evaluate_model"]
+    eval --> bundle["save_model_bundle"]
+    train --> mlflow_model["MLflow params + model artifacts"]
+    eval --> mlflow_eval["MLflow metrics + evaluation artifacts"]
+    bundle --> artifact["models/forecast_model.pkl"]
+    bundle --> mlflow_bundle["MLflow bundle artifact"]
+```
+
+### Inference Flow
+
+```mermaid
+flowchart TD
+    request["Client request<br/>item/store/history/horizon"] --> api["FastAPI /predict"]
+    api --> forecaster["DemandForecaster"]
+    forecaster --> model["Load model bundle"]
+    forecaster --> calendar["Load calendar row"]
+    forecaster --> features["Build inference features"]
+    features --> predict["Predict next day demand"]
+    predict --> append["Append prediction to history"]
+    append --> features
+    predict --> response["Return recursive forecast response"]
+```
+
 ## Configuration
 
 - Copy [`.env.example`](./.env.example) to `.env` if you want local overrides.
