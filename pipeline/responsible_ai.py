@@ -67,9 +67,7 @@ def build_fairness_report(
         }
 
     disparity_summary: dict[str, object] = {}
-    for group_column, group_frame in fairness_frame.groupby(
-        "group_column", sort=False
-    ):
+    for group_column, group_frame in fairness_frame.groupby("group_column", sort=False):
         worst_mae = group_frame.sort_values("mae", ascending=False).iloc[0]
         best_mae = group_frame.sort_values("mae", ascending=True).iloc[0]
         disparity_summary[group_column] = {
@@ -85,9 +83,7 @@ def build_fairness_report(
         "group_disparities": disparity_summary,
     }
     return (
-        fairness_frame.sort_values(
-            ["group_column", "mae"], ascending=[True, False]
-        ),
+        fairness_frame.sort_values(["group_column", "mae"], ascending=[True, False]),
         summary,
     )
 
@@ -155,9 +151,7 @@ def evaluate_responsible_ai(
 
     prediction_frame = validation_meta.copy()
     prediction_frame["actual_demand"] = y_valid.to_numpy()
-    prediction_frame["predicted_demand"] = np.clip(
-        model.predict(X_valid), 0.0, None
-    )
+    prediction_frame["predicted_demand"] = np.clip(model.predict(X_valid), 0.0, None)
 
     fairness_frame, fairness_summary = build_fairness_report(prediction_frame)
     explainability_frame, explainability_summary = build_explainability_report(
