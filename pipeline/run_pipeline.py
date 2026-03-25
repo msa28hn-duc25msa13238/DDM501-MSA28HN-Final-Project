@@ -85,6 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-series", type=int, default=300)
     parser.add_argument("--recent-days", type=int, default=365)
     parser.add_argument("--validation-days", type=int, default=28)
+    parser.add_argument("--random-state", type=int, default=None)
     parser.add_argument("--disable-mlflow", action="store_true")
     parser.add_argument("--disable-price", action="store_true")
     parser.add_argument("--register-model", action="store_true")

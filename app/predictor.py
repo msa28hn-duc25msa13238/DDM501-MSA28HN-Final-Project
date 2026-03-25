@@ -18,6 +18,7 @@ class DemandForecaster:
         self.bundle: dict[str, Any] | None = None
         self.calendar: pd.DataFrame | None = None
         self.model_version: str | None = None
+        self.model_load_error: str | None = None
         self._load_calendar()
         self.reload_model()
 
@@ -37,11 +38,20 @@ class DemandForecaster:
             self.bundle = None
             self.model = None
             self.model_version = None
+            self.model_load_error = None
             return
-        with model_path.open("rb") as handle:
-            self.bundle = pickle.load(handle)
+        try:
+            with model_path.open("rb") as handle:
+                self.bundle = pickle.load(handle)
+        except Exception as exc:
+            self.bundle = None
+            self.model = None
+            self.model_version = None
+            self.model_load_error = str(exc)
+            return
         self.model = self.bundle["model"]
         self.model_version = self.bundle.get("model_version", "unknown")
+        self.model_load_error = None
 
     @property
     def model_loaded(self) -> bool:
@@ -49,6 +59,10 @@ class DemandForecaster:
 
     def get_model_info(self) -> dict[str, Any]:
         if not self.bundle:
+            if self.model_load_error:
+                raise RuntimeError(
+                    f"Model artifact could not be loaded: {self.model_load_error}"
+                )
             raise RuntimeError("Model artifact has not been created yet.")
         return {
             "model_version": self.bundle.get("model_version", "unknown"),
@@ -70,6 +84,10 @@ class DemandForecaster:
 
     def predict(self, request: PredictionRequest) -> list[dict[str, Any]]:
         if not self.model_loaded or not self.bundle:
+            if self.model_load_error:
+                raise RuntimeError(
+                    f"Model could not be loaded: {self.model_load_error}"
+                )
             raise RuntimeError(
                 "Model is not loaded. Train a model before serving predictions."
             )
