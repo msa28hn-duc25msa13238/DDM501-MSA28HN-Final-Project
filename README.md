@@ -141,6 +141,24 @@ The baseline model is a single global regressor trained on sampled
 
 The service predicts next-day demand and can recursively forecast up to 28 days.
 
+## Technology Stack
+
+| Area | Tools | Role in this project |
+|---|---|---|
+| Data processing | `pandas`, `numpy` | Load and reshape M5 CSVs, join calendar/prices, build lag/rolling features |
+| Feature engineering | `pipeline/features.py` | Constructs training features and builds inference rows (lags 1/7/28 + rolling stats) |
+| Model training | `scikit-learn` (`Pipeline`, `ColumnTransformer`, `OrdinalEncoder`, `HistGradientBoostingRegressor`) | Train a global demand forecasting regressor and bundle it for inference |
+| Model evaluation | `sklearn.metrics`, `matplotlib` | Compute `rmse`/`mae`/`wape` and generate validation plot artifacts |
+| API serving | `FastAPI`, `Pydantic` | Provide `/health`, `/model/info`, and `/predict` endpoints with typed request/response models |
+| Inference orchestration | `app/predictor.py` | Loads the saved bundle and performs recursive multi-step forecasts up to the requested horizon |
+| HTTP metrics | `prometheus-fastapi-instrumentator`, Prometheus | Expose and scrape `/metrics` for latency/traffic observability |
+| Experiment tracking | `MLflow` | Log params/metrics/artifacts and optionally register the best model to the registry |
+| Workflow orchestration | `Airflow` | Weekly retraining DAG that runs the same pipeline stages: prepare, train, evaluate, register |
+| Configuration | `python-dotenv` | Load environment variables from `.env` (e.g., `DATA_DIR`, `MODEL_DIR`, `RANDOM_STATE`, `MLFLOW_TRACKING_URI`) |
+| Containerization | `Docker`, `docker-compose.yml` | Local multi-service runtime for API, MLflow, Airflow, and Prometheus |
+| Testing & quality gates | `pytest`, `Ruff` | Unit tests for pipeline/features/API and lint/format checks in CI |
+| Optional tooling | `evidently`, `locust` | Drift reporting and load testing for the `/predict` endpoint |
+
 ## Quick Start
 
 1. Create and activate a virtual environment.
