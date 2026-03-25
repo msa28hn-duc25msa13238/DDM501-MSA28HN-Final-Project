@@ -436,6 +436,22 @@ docker compose down
 .venv/bin/pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539
 ```
 
+Pytest result:
+
+![Pytest result](./media/pytest-result.png)
+
+Recent local output:
+
+```text
+(.venv) albertdinh@Albert-MBPM1Pro ddm501_msa28hn_demand_forecast % ruff check .
+All checks passed!
+(.venv) albertdinh@Albert-MBPM1Pro ddm501_msa28hn_demand_forecast % ruff format --check .
+28 files already formatted
+(.venv) albertdinh@Albert-MBPM1Pro ddm501_msa28hn_demand_forecast % pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539
+No known vulnerabilities found, 1 ignored
+(.venv) albertdinh@Albert-MBPM1Pro ddm501_msa28hn_demand_forecast %
+```
+
 ## CI/CD (GitHub Actions)
 
 This repository includes 3 workflows under `.github/workflows/`:
