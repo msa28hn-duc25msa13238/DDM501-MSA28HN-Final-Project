@@ -1,0 +1,56 @@
+{
+  "method": "permutation_importance",
+  "scoring": "neg_mean_absolute_error",
+  "top_features": [
+    {
+      "feature": "rolling_mean_7",
+      "importance_mean": 0.35853949598783535,
+      "importance_std": 0.007883681657986023
+    },
+    {
+      "feature": "rolling_mean_28",
+      "importance_mean": 0.1561249942070148,
+      "importance_std": 0.004345641843531212
+    },
+    {
+      "feature": "lag_1",
+      "importance_mean": 0.10800393373198491,
+      "importance_std": 0.0047859830732916876
+    },
+    {
+      "feature": "wday",
+      "importance_mean": 0.023377277243923956,
+      "importance_std": 0.004718980203071184
+    },
+    {
+      "feature": "rolling_std_28",
+      "importance_mean": 0.015494473279733745,
+      "importance_std": 0.00039850155507699186
+    },
+    {
+      "feature": "lag_7",
+      "importance_mean": 0.006580442531266439,
+      "importance_std": 0.0006852856008821166
+    },
+    {
+      "feature": "store_id",
+      "importance_mean": 0.0038639663799137523,
+      "importance_std": 0.0012668253124373885
+    },
+    {
+      "feature": "snap",
+      "importance_mean": 0.002941485805527888,
+      "importance_std": 0.0007722950721390285
+    },
+    {
+      "feature": "sell_price",
+      "importance_mean": 0.0024414041685044685,
+      "importance_std": 0.00040470207009764964
+    },
+    {
+      "feature": "lag_28",
+      "importance_mean": 0.0014914509439412304,
+      "importance_std": 0.0006158496699740005
+    }
+  ]
+}

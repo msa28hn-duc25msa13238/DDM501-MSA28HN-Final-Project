@@ -75,6 +75,7 @@ def save_model_bundle(
     *,
     params: dict[str, float | int],
     run_id: str | None,
+    responsible_ai_summary: dict[str, object] | None = None,
 ) -> Path:
     config.model_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc)
@@ -87,6 +88,7 @@ def save_model_bundle(
         "training_config": config.to_dict(),
         "training_params": params,
         "run_id": run_id,
+        "responsible_ai": responsible_ai_summary or {},
     }
     with config.model_artifact_path.open("wb") as handle:
         pickle.dump(bundle, handle)

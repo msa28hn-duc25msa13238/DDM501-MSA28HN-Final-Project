@@ -13,7 +13,8 @@ reproducible ML product around the M5 data.
 **Operational guide (training, `/metrics`, Prometheus, Evidently, Locust, CI):**
 [PIPELINE_RUN.md](./PIPELINE_RUN.md) (Vietnamese). **Architecture and design
 rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring guide:**
-[MONITORING.md](./MONITORING.md)
+[MONITORING.md](./MONITORING.md). **Responsible AI deliverables:**
+[RESPONSIBLE_AI.md](./RESPONSIBLE_AI.md)
 
 ## Project Structure
 
@@ -36,6 +37,7 @@ rationale:** [ARCHITECTURE.md](./ARCHITECTURE.md). **Monitoring guide:**
 ├── requirements.txt
 ├── ARCHITECTURE.md
 ├── MONITORING.md
+├── RESPONSIBLE_AI.md
 └── PIPELINE_RUN.md
 ```
 
@@ -166,6 +168,15 @@ The service predicts next-day demand and can recursively forecast up to 28 days.
 | Testing & quality gates | `pytest`, `Ruff` | Unit tests for pipeline/features/API and lint/format checks in CI |
 | Optional tooling | `evidently`, `locust` | Drift reporting and load testing for the `/predict` endpoint |
 
+## Responsible AI
+
+Responsible AI outputs are generated automatically during training and written
+under `models/responsible_ai/`. The project now includes:
+
+- fairness analysis across `state_id`, `store_id`, `cat_id`, `dept_id`, and `item_id`
+- model explainability via permutation importance (used as the "equivalent" method)
+- a privacy and ethics write-up in [RESPONSIBLE_AI.md](./RESPONSIBLE_AI.md)
+
 ## Quick Start
 
 1. Create and activate a virtual environment.
@@ -201,7 +212,7 @@ Health check for the service and model artifact.
 
 ### `GET /model/info`
 
-Returns model metadata, metrics, and artifact path.
+Returns model metadata, metrics, Responsible AI summary, and artifact path.
 
 ### `GET /metrics`
 

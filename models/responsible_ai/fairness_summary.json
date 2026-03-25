@@ -1,0 +1,44 @@
+{
+  "overall_metrics": {
+    "rmse": 1.4601033845882452,
+    "mae": 0.8589855259028414,
+    "wape": 0.7292044888917502
+  },
+  "group_disparities": {
+    "state_id": {
+      "mae_gap": 0.17685855206872925,
+      "worst_group": "CA",
+      "best_group": "TX",
+      "worst_group_mae": 0.9514263590776912,
+      "best_group_mae": 0.774567807008962
+    },
+    "store_id": {
+      "mae_gap": 0.6596975868119914,
+      "worst_group": "CA_2",
+      "best_group": "TX_1",
+      "worst_group_mae": 1.3228133294438356,
+      "best_group_mae": 0.6631157426318441
+    },
+    "cat_id": {
+      "mae_gap": 0.30930852261499464,
+      "worst_group": "FOODS",
+      "best_group": "HOUSEHOLD",
+      "worst_group_mae": 0.992601672051573,
+      "best_group_mae": 0.6832931494365784
+    },
+    "dept_id": {
+      "mae_gap": 0.6498163259592611,
+      "worst_group": "FOODS_3",
+      "best_group": "HOBBIES_2",
+      "worst_group_mae": 1.1316304266619144,
+      "best_group_mae": 0.48181410070265335
+    },
+    "item_id": {
+      "mae_gap": 7.84881661580452,
+      "worst_group": "FOODS_3_288",
+      "best_group": "FOODS_3_008",
+      "worst_group_mae": 7.916629237383307,
+      "best_group_mae": 0.06781262157878737
+    }
+  }
+}

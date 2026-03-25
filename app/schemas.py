@@ -62,5 +62,6 @@ class ModelInfoResponse(BaseModel):
     model_version: str
     trained_at: Optional[str] = None
     metrics: dict[str, float]
+    responsible_ai: dict[str, object] = Field(default_factory=dict)
     feature_columns: List[str]
     artifact_path: str

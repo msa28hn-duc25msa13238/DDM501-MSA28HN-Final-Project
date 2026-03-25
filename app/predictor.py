@@ -68,6 +68,7 @@ class DemandForecaster:
             "model_version": self.bundle.get("model_version", "unknown"),
             "trained_at": self.bundle.get("trained_at"),
             "metrics": self.bundle.get("metrics", {}),
+            "responsible_ai": self.bundle.get("responsible_ai", {}),
             "feature_columns": self.bundle.get("feature_columns", []),
             "artifact_path": str(self.settings.model_path),
         }

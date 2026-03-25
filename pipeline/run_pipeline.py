@@ -14,6 +14,7 @@ from pipeline.features import (
     select_feature_columns,
     split_train_validation,
 )
+from pipeline.responsible_ai import evaluate_responsible_ai
 from pipeline.registry import register_best_model
 from pipeline.training import train_model
 
@@ -50,6 +51,14 @@ def run_pipeline(
         training_config,
         run_id=train_result.run_id,
     )
+    responsible_ai = evaluate_responsible_ai(
+        train_result.model,
+        X_valid,
+        y_valid,
+        validation_meta,
+        training_config,
+        run_id=train_result.run_id,
+    )
     artifact_path = save_model_bundle(
         train_result.model,
         select_feature_columns(include_price=training_config.include_price),
@@ -57,6 +66,7 @@ def run_pipeline(
         training_config,
         params=train_result.params,
         run_id=train_result.run_id,
+        responsible_ai_summary=responsible_ai,
     )
     log_run_artifacts(
         artifact_path,
@@ -75,6 +85,7 @@ def run_pipeline(
         "registered_version": registered_version,
         "train_rows": len(X_train),
         "validation_rows": len(X_valid),
+        "responsible_ai": responsible_ai,
     }
 
 

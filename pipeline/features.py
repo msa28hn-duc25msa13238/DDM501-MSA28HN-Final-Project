@@ -85,7 +85,9 @@ def split_train_validation(
             "Train/validation split is empty. Increase available history or reduce validation_days."
         )
 
-    validation_meta = validation_frame[["date", "id", "item_id", "store_id"]].copy()
+    validation_meta = validation_frame[
+        ["date", "id", "item_id", "dept_id", "cat_id", "store_id", "state_id"]
+    ].copy()
     return (
         train_frame[feature_columns],
         train_frame["demand"].astype(float),

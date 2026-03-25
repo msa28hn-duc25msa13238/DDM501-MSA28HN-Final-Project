@@ -334,3 +334,43 @@ flowchart TD
 - This trade-off is appropriate for a lab project whose main goal is to
   demonstrate MLOps capability rather than state-of-the-art forecasting
   performance.
+
+## E. Responsible AI Considerations
+
+The project now includes a baseline Responsible AI layer documented in
+`RESPONSIBLE_AI.md` and generated automatically during training.
+
+### Fairness Analysis and Bias Detection
+
+- Validation-time fairness metrics are produced for `state_id`, `store_id`,
+  `cat_id`, `dept_id`, and `item_id`.
+- The report compares subgroup RMSE, MAE, and WAPE and highlights the best and
+  worst subgroup by MAE together with the MAE gap.
+- This does not guarantee fairness, but it provides a concrete bias-detection
+  checkpoint before relying on the model operationally.
+
+### Model Explainability
+
+- The model explainability method is permutation importance on the validation
+  split.
+- This is used as the "equivalent" method in place of SHAP or LIME because it
+  works directly with the deployed scikit-learn pipeline and quantifies which
+  features most affect validation performance.
+
+### Data Privacy Considerations
+
+- The M5 dataset is aggregate retail data and does not contain customer-level
+  personally identifiable information.
+- Inputs are limited to product, store, state, calendar, price, and demand
+  history fields.
+- Even so, operational data and prediction payloads should still be retained
+  conservatively and access-controlled in a real deployment.
+
+### Ethical Implications
+
+- Forecast errors can create unequal service outcomes across stores or product
+  categories if some subgroups consistently receive worse predictions.
+- Under-forecasting can increase stockouts, while over-forecasting can increase
+  waste and markdown pressure.
+- For that reason, the project treats the model as decision support rather than
+  a fully autonomous inventory decision-maker.
